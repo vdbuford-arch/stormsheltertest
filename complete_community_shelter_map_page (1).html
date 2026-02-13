@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Shelter Locations</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:20px;background:#f4f6f8}
+h1{text-align:center}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px}
+#searchBox,#countyFilter{flex:1;padding:12px;font-size:16px;border-radius:8px;border:1px solid #ccc}
+button{padding:12px 16px;border:none;border-radius:8px;background:#0077cc;color:#fff;font-weight:bold;cursor:pointer}
+button:hover{background:#005fa3}
+ul{list-style:none;padding:0}
+li{background:#fff;margin-bottom:8px;padding:10px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+a{text-decoration:none;color:#0077cc;font-weight:bold}
+a:hover{text-decoration:underline}
+.count{margin-bottom:10px;font-weight:bold}
+</style>
+</head>
+<body>
+
+<h1>Community Shelter Locations</h1>
+
+<div class="controls">
+<input type="text" id="searchBox" placeholder="Search by name, city, or address...">
+<select id="countyFilter">
+<option value="">All Counties</option>
+</select>
+<button onclick="findNearest()">Find Nearest Shelter</button>
+</div>
+
+<div class="count" id="resultCount"></div>
+<ul id="locationList"></ul>
+
+<script>
+
+const rawData = `
+Barton Community Shelter - 53 Plaza Court, Cherokee, AL
+Charity Chapel Church - 2997 Frankfort Road, Tuscumbia, AL
+Cherokee Community Shelter - 1211 2nd Street, Cherokee, AL
+Colbert Alloys Park - 191 Alloys Park Lane, Muscle Shoals, AL
+Colbert Heights High School - 484 Burton Road, Tuscumbia, AL
+Colbert County Emergency Management Agency - 120 West 5th Street, Tuscumbia, AL
+County Road Department - 2838 Highway 20, Littleville, AL
+Ford City Community Shelter - 14439 County Line Road, Muscle Shoals, AL
+Highway 247 Volunteer Fire Department - 4639 Highway 247, Tuscumbia, AL
+Industrial Park - 2848 Denton Road, Tuscumbia, AL
+LaGrange Community Shelter - 1638 Waldrep Loop, Leighton, AL
+Leighton Community Shelter - 8856 Main Street, Leighton, AL
+Littleville Community Shelter - 1448 Jackson Highway, Littleville, AL
+Locust Shores Community Shelter - 76 Golden Road, Tuscumbia, AL
+Manning Homes Community Shelter - 2315 15th Street Northwest, Sheffield, AL
+Maud Community Shelter - 1930 Maud Road, Cherokee, AL
+Nitrate City Volunteer Fire Department - 1341 Alabama Avenue, Muscle Shoals, AL
+Northwest-Shoals Community College - 75 Student Drive, Muscle Shoals, AL
+Rose Trail Park Community Shelter - 37 Rose Trail Park, Cherokee, AL
+Sheffield Community Shelter - 423 Pickwick Street, Sheffield, AL
+Sheffield Recreation Center - 1912 29th Street Northeast, Sheffield, AL
+Spring Valley Community Shelter - 7141 Coburn Mountain Road, Tuscumbia, AL
+County Yard Community Shelter - 914 South Hickory Street, Tuscumbia, AL
+Underwood Crossing Community Shelter - 12491 County Line Road, Leighton, AL
+Baileyton Community Shelter - 112 Fairview Road, Baileyton, AL
+Bethsadia VFD - 454 County Road 804, Cullman, AL
+Brushy Pond Senior Center - 2729 County Road 143, Bremen, AL
+Colony Senior Center - 12980 Highway 91, Hanceville, AL
+Crane Hill Senior Center - 15095 County Road 222, Crane Hill, AL
+Cullman Community Shelter - 1511 Sportsman Lake Road, Cullman, AL
+Cullman Senior Center - 1539 Sportsman Lake Road Northwest, Cullman, AL
+Crossville Fire Department - 14521 Highway 68, Crossville, AL
+Fyffe Community Shelter - 514 Campbell Street, Fyffe, AL
+Geraldine Community Shelter - 41303 Highway 75, Geraldine, AL
+Henagar Community Shelter - 1106 Greenbriar Drive, Henagar, AL
+Ider Community Shelter - 10808 Highway 75, Ider, AL
+Valley Head Community Shelter - 9600 Highway 117, Valley Head, AL
+Belgreen Community Shelter - 14141 Highway 187, Russellville, AL
+Blue Springs Fire Department - 3001 Highway 75, Phil Campbell, AL
+Burnout Fire Department - 75 Highway 224, Red Bay, AL
+Phil Campbell Community Center - 132 Sherry Bryce Drive, Phil Campbell, AL
+Red Bay Methodist Church - 509 4th Street Southwest, Red Bay, AL
+Russellville Community Shelter - 511 Gains Avenue, Russellville, AL
+Russellville Courthouse - 410 Jackson Avenue, Russellville, AL
+Franklin County Courthouse Basement - 1 South Jefferson Street, Winchester, TN
+Franklin County Emergency Management Agency - 325 George Fraley Parkway, Winchester, TN
+Bridgeport Community Shelter - 602 Broadway Avenue, Bridgeport, AL
+Bridgeport Elementary School - 1014 Jacobs Avenue, Bridgeport, AL
+Jackson County Courthouse - 102 East Laurel Street, Scottsboro, AL
+Scottsboro Community Shelter - 2101 Veterans Drive, Scottsboro, AL
+Woodville Community Shelter - 231 Hodges Street, Woodville, AL
+Bank Independent - 11250 Highway 101, Lexington, AL
+Killen United Methodist Church - 201 J.C. Mauldin Highway, Killen, AL
+Rogersville Recreation Park - 100 Optimist Drive, Rogersville, AL
+Waterloo Community Center - 300 County Road 45, Waterloo, AL
+Moulton Community Shelter - 14201 Court Street, Moulton, AL
+Town Creek Community Shelter - 1025 Wallace Street, Town Creek, AL
+Ardmore City Hall - 25844 Main Street, Ardmore, AL
+Ardmore Community Shelter - 29910 Park Avenue, Ardmore, AL
+Elkmont Community Shelter - 19663 Sandlin Road, Elkmont, AL
+Good Shepherd United Methodist Church - 1418 Old Railroad Bed Road, Madison, AL
+Gurley Rec Center - 311 3rd Street, Gurley, AL
+Moores Mill Community Shelter - 7416 Moores Mill Road, Huntsville, AL
+New Hope Community Shelter - 5507 Main Drive, New Hope, AL
+Owens Cross Roads Town Hall - 9032 US Highway 431, Owens Cross Roads, AL
+Triana Community Shelter - 280 Zierdt Road, Madison, AL
+Grant Community Shelter - 307 2nd Avenue West, Grant, AL
+Union Grove Community Shelter - 3680 Union Grove Road, Union Grove, AL
+Austin High School - 3004 Modaus Road, Decatur, AL
+Danville Volunteer Fire Department - 5798 Highway 36 West, Danville, AL
+Decatur High School - 910 Somerville Road, Decatur, AL
+Hartselle High School - 1000 Bethel Road NE, Hartselle, AL
+Morgan County Courthouse Basement - 302 Lee Street Northeast, Decatur, AL
+Somerville Community Shelter - 72 Cross Creek Loop, Somerville, AL
+Trinity Town Hall - 35 Preston Drive, Trinity, AL
+Wayne County Courthouse - 100 Court Circle, Waynesboro, TN
+`;
+
+const locations = rawData.trim().split("\n");
+const list = document.getElementById("locationList");
+const resultCount = document.getElementById("resultCount");
+const countyFilter = document.getElementById("countyFilter");
+
+function extractCounty(addressLine){
+if(addressLine.includes("Cherokee")||addressLine.includes("Tuscumbia")||addressLine.includes("Muscle Shoals")||addressLine.includes("Sheffield")||addressLine.includes("Leighton")||addressLine.includes("Littleville")) return "Colbert";
+if(addressLine.includes("Cullman")||addressLine.includes("Hanceville")||addressLine.includes("Crane Hill")||addressLine.includes("Baileyton")||addressLine.includes("Bremen")) return "Cullman";
+if(addressLine.includes("Crossville")||addressLine.includes("Fyffe")||addressLine.includes("Geraldine")||addressLine.includes("Henagar")||addressLine.includes("Ider")||addressLine.includes("Valley Head")||addressLine.includes("Bridgeport")||addressLine.includes("Scottsboro")||addressLine.includes("Woodville")) return "Jackson";
+if(addressLine.includes("Russellville")||addressLine.includes("Phil Campbell")||addressLine.includes("Red Bay")) return "Franklin";
+if(addressLine.includes("Decatur")||addressLine.includes("Hartselle")||addressLine.includes("Danville")||addressLine.includes("Somerville")||addressLine.includes("Trinity")) return "Morgan";
+if(addressLine.includes("Moulton")||addressLine.includes("Town Creek")) return "Lawrence";
+if(addressLine.includes("Madison")||addressLine.includes("Huntsville")||addressLine.includes("Gurley")||addressLine.includes("New Hope")||addressLine.includes("Owens Cross Roads")) return "Madison";
+if(addressLine.includes("Grant")||addressLine.includes("Union Grove")) return "Marshall";
+if(addressLine.includes("Ardmore")||addressLine.includes("Elkmont")) return "Limestone";
+if(addressLine.includes("Lexington")||addressLine.includes("Killen")||addressLine.includes("Rogersville")||addressLine.includes("Waterloo")) return "Lauderdale";
+if(addressLine.includes("Waynesboro")) return "Wayne";
+return "Other";
+}
+
+const counties = [...new Set(locations.map(l=>extractCounty(l)))].sort();
+counties.forEach(c=>{
+const option=document.createElement("option");
+option.value=c;
+option.textContent=c;
+countyFilter.appendChild(option);
+});
+
+function buildList(data){
+list.innerHTML="";
+data.forEach(item=>{
+const li=document.createElement("li");
+const a=document.createElement("a");
+const destination=item.split("-")[1].trim().replace(/,/g,"").replace(/\s+/g,"+");
+a.href=`https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+a.target="_blank";
+a.textContent=item;
+li.appendChild(a);
+list.appendChild(li);
+});
+resultCount.textContent=`Showing ${data.length} location(s)`;
+}
+
+function applyFilters(){
+const search=document.getElementById("searchBox").value.toLowerCase();
+const county=countyFilter.value;
+const filtered=locations.filter(loc=>
+loc.toLowerCase().includes(search) &&
+(county==="" || extractCounty(loc)===county)
+);
+buildList(filtered);
+}
+
+function findNearest(){
+if(!navigator.geolocation){alert("Geolocation not supported");return;}
+navigator.geolocation.getCurrentPosition(pos=>{
+const origin=`${pos.coords.latitude},${pos.coords.longitude}`;
+window.open(`https://www.google.com/maps/search/?api=1&query=community+shelter&origin=${origin}`,'_blank');
+});
+}
+
+document.getElementById("searchBox").addEventListener("input",applyFilters);
+countyFilter.addEventListener("change",applyFilters);
+
+buildList(locations);
+
+</script>
+
+</body>
+</html>
